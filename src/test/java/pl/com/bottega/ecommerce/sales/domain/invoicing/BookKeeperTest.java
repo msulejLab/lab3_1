@@ -62,6 +62,15 @@ public class BookKeeperTest {
     }
 
     @Test
+    public void requestInvoiceMethodWithoutAnyElementsShouldReturnInvoiceWithoutAnyElements() {
+        List<RequestItem> requestItemList = getRequestItemList(0, requestItem);
+        when(invoiceRequest.getItems()).thenReturn(requestItemList);
+
+        Invoice invoice = bookKeeper.issuance(invoiceRequest, taxPolicy);
+        assertThat(invoice.getItems().size(), is(0));
+    }
+
+    @Test
     public void requestInvoiceMethodWithTwoElementsShouldCallCalculateTaxTwoTimes() {
         List<RequestItem> requestItemList = getRequestItemList(2, requestItem);
         when(invoiceRequest.getItems()).thenReturn(requestItemList);
