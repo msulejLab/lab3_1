@@ -79,6 +79,15 @@ public class BookKeeperTest {
         verify(taxPolicy, times(2)).calculateTax(any(ProductType.class), any(Money.class));
     }
 
+    @Test
+    public void requestInvoiceMethodWithoutAnyElementsShouldNotCallCalculateTax() {
+        List<RequestItem> requestItemList = getRequestItemList(0, requestItem);
+        when(invoiceRequest.getItems()).thenReturn(requestItemList);
+
+        Invoice invoice = bookKeeper.issuance(invoiceRequest, taxPolicy);
+        verify(taxPolicy, times(0)).calculateTax(any(ProductType.class), any(Money.class));
+    }
+
     private static List<RequestItem> getRequestItemList(int size, RequestItem requestItem) {
         List<RequestItem> requestItemList = new ArrayList<>();
 
