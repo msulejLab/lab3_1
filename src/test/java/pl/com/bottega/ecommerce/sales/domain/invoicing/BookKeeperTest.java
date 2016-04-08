@@ -61,6 +61,15 @@ public class BookKeeperTest {
         assertThat(invoice.getItems().size(), is(1));
     }
 
+    @Test
+    public void requestInvoiceMethodWithTwoElementsShouldCallCalculateTaxTwoTimes() {
+        List<RequestItem> requestItemList = getRequestItemList(2, requestItem);
+        when(invoiceRequest.getItems()).thenReturn(requestItemList);
+
+        Invoice invoice = bookKeeper.issuance(invoiceRequest, taxPolicy);
+        verify(taxPolicy, times(2)).calculateTax(any(ProductType.class), any(Money.class));
+    }
+
     private static List<RequestItem> getRequestItemList(int size, RequestItem requestItem) {
         List<RequestItem> requestItemList = new ArrayList<>();
 
