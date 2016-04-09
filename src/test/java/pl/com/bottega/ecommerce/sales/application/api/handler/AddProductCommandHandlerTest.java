@@ -2,9 +2,7 @@ package pl.com.bottega.ecommerce.sales.application.api.handler;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
-import pl.com.bottega.ecommerce.canonicalmodel.publishedlanguage.ClientData;
 import pl.com.bottega.ecommerce.canonicalmodel.publishedlanguage.Id;
 import pl.com.bottega.ecommerce.sales.application.api.command.AddProductCommand;
 import pl.com.bottega.ecommerce.sales.domain.client.Client;
@@ -14,7 +12,6 @@ import pl.com.bottega.ecommerce.sales.domain.productscatalog.Product;
 import pl.com.bottega.ecommerce.sales.domain.productscatalog.ProductRepository;
 import pl.com.bottega.ecommerce.sales.domain.productscatalog.ProductType;
 import pl.com.bottega.ecommerce.sales.domain.reservation.Reservation;
-import pl.com.bottega.ecommerce.sales.domain.reservation.ReservationRepository;
 import pl.com.bottega.ecommerce.sharedkernel.Money;
 import pl.com.bottega.ecommerce.system.application.SystemContext;
 import pl.com.bottega.ecommerce.system.application.SystemUser;
@@ -101,6 +98,26 @@ public class AddProductCommandHandlerTest {
         Id addedProductId = getProductIdFromReservationRepository(0, 0);
 
         assertThat(addedProductId, is(suggestedProductId));
+    }
+
+    @Test
+    public void handleMethodShouldAppendProductToExistingReservation() {
+        reservationRepository.clear();
+
+        Id orderId = Id.generate();
+
+        AddProductCommand addProductCommand = new AddProductCommand(orderId, availableProductId, 10);
+        addProductCommandHandler.handle(addProductCommand);
+        addProductCommand = new AddProductCommand(orderId, notAvailableProductId, 20);
+        addProductCommandHandler.handle(addProductCommand);
+
+        int reservedProductsAmount = -1;
+        if (reservationRepository.reservations.size() > 0) {
+            Reservation addedReservation = reservationRepository.reservations.get(0);
+            reservedProductsAmount = addedReservation.getReservedProducts().size();
+        }
+
+        assertThat(reservedProductsAmount, is(2));
     }
 
     private Id getProductIdFromReservationRepository(int resIndex, int prodIndex) {

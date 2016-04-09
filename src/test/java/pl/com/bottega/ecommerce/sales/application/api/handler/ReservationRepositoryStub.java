@@ -41,8 +41,4 @@ public class ReservationRepositoryStub implements ReservationRepository {
     public void clear(){
         reservations.clear();
     }
-
-    public Id getReservedProductId(int reservationId) {
-        return reservations.get(reservationId).getReservedProducts().get(0).getProductId();
-    }
 }
