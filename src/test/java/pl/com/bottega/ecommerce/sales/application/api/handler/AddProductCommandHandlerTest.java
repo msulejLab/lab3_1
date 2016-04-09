@@ -65,4 +65,15 @@ public class AddProductCommandHandlerTest {
         addProductCommandHandler.setSuggestionService(suggestionService);
         addProductCommandHandler.setSystemContext(systemContext);
     }
+
+
+    @Test
+    public void handleMethodShouldSaveReservationToReservationRepository() {
+        reservationRepository.clear();
+
+        AddProductCommand addProductCommand = new AddProductCommand(Id.generate(), availableProductId, 10);
+        addProductCommandHandler.handle(addProductCommand);
+
+        assertThat(reservationRepository.size(), is(1));
+    }
 }
