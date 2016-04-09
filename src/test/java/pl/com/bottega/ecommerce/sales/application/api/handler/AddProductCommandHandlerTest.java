@@ -76,4 +76,24 @@ public class AddProductCommandHandlerTest {
 
         assertThat(reservationRepository.size(), is(1));
     }
+
+    @Test
+    public void handleMethodShouldSaveReservationWithAvailableProduct() {
+        reservationRepository.clear();
+
+        AddProductCommand addProductCommand = new AddProductCommand(Id.generate(), availableProductId, 10);
+        addProductCommandHandler.handle(addProductCommand);
+
+        Id addedProductId = null;
+
+        if (reservationRepository.reservations.size() > 0) {
+            Reservation addedReservation = reservationRepository.reservations.get(0);
+
+            if (addedReservation.getReservedProducts().size() > 0) {
+                addedProductId = addedReservation.getReservedProducts().get(0).getProductId();
+            }
+        }
+
+        assertThat(addedProductId, is(availableProductId));
+    }
 }
