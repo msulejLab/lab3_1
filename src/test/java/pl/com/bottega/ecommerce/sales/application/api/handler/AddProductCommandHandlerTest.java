@@ -41,11 +41,13 @@ public class AddProductCommandHandlerTest {
         reservationRepository = new ReservationRepositoryStub();
 
         ProductRepository productRepository = mock(ProductRepository.class);
-        when(productRepository.load(availableProductId))
-                .thenReturn(new Product(availableProductId, new Money(50), "Swordfish", ProductType.FOOD));
-        when(productRepository.load(notAvailableProductId))
-                .thenReturn(new Product(availableProductId, new Money(70), "Trout", ProductType.FOOD));
 
+        Product availableProduct = new Product(availableProductId, new Money(50), "Swordfish", ProductType.FOOD);
+        when(productRepository.load(availableProductId)).thenReturn(availableProduct);
+
+        Product notAvailableProduct = new Product(notAvailableProductId, new Money(70), "Trout", ProductType.FOOD);
+        notAvailableProduct.markAsRemoved();
+        when(productRepository.load(notAvailableProductId)).thenReturn(notAvailableProduct);
 
         // loadClient() fake
         SystemContext systemContext = mock(SystemContext.class);
@@ -84,16 +86,32 @@ public class AddProductCommandHandlerTest {
         AddProductCommand addProductCommand = new AddProductCommand(Id.generate(), availableProductId, 10);
         addProductCommandHandler.handle(addProductCommand);
 
-        Id addedProductId = null;
+        Id addedProductId = getProductIdFromReservationRepository(0, 0);;
 
-        if (reservationRepository.reservations.size() > 0) {
-            Reservation addedReservation = reservationRepository.reservations.get(0);
+        assertThat(addedProductId, is(availableProductId));
+    }
 
-            if (addedReservation.getReservedProducts().size() > 0) {
-                addedProductId = addedReservation.getReservedProducts().get(0).getProductId();
+    @Test
+    public void handleMethodShouldSaveReservationWithSuggestedProduct() {
+        reservationRepository.clear();
+
+        AddProductCommand addProductCommand = new AddProductCommand(Id.generate(), notAvailableProductId, 10);
+        addProductCommandHandler.handle(addProductCommand);
+
+        Id addedProductId = getProductIdFromReservationRepository(0, 0);
+
+        assertThat(addedProductId, is(suggestedProductId));
+    }
+
+    private Id getProductIdFromReservationRepository(int resIndex, int prodIndex) {
+        if (reservationRepository.reservations.size() > resIndex) {
+            Reservation addedReservation = reservationRepository.reservations.get(resIndex);
+
+            if (addedReservation.getReservedProducts().size() > prodIndex) {
+                return addedReservation.getReservedProducts().get(prodIndex).getProductId();
             }
         }
 
-        assertThat(addedProductId, is(availableProductId));
+        return null;
     }
 }
