@@ -12,11 +12,13 @@ import pl.com.bottega.ecommerce.sales.domain.productscatalog.Product;
 import pl.com.bottega.ecommerce.sales.domain.productscatalog.ProductRepository;
 import pl.com.bottega.ecommerce.sales.domain.productscatalog.ProductType;
 import pl.com.bottega.ecommerce.sales.domain.reservation.Reservation;
+import pl.com.bottega.ecommerce.sales.domain.reservation.ReservationRepository;
 import pl.com.bottega.ecommerce.sharedkernel.Money;
 import pl.com.bottega.ecommerce.system.application.SystemContext;
 import pl.com.bottega.ecommerce.system.application.SystemUser;
 
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.*;
 
 import static org.mockito.Mockito.*;
@@ -24,7 +26,16 @@ import static org.mockito.Mockito.*;
 public class AddProductCommandHandlerTest {
     private AddProductCommandHandler addProductCommandHandler;
 
-    private ReservationRepositoryStub reservationRepository;
+    private ReservationRepositoryStub reservationRepositoryStub;
+    private ReservationRepository reservationRepositoryMock;
+
+    private ProductRepository productRepository;
+
+    private SuggestionService suggestionService;
+
+    private Reservation reservation;
+
+    private Product availableProduct, notAvailableProduct, suggestedProduct;
 
     public Id availableProductId = Id.generate();
     public Id notAvailableProductId = Id.generate();
@@ -35,16 +46,15 @@ public class AddProductCommandHandlerTest {
     public void setUp() {
         addProductCommandHandler = new AddProductCommandHandler();
 
-        reservationRepository = new ReservationRepositoryStub();
+        reservationRepositoryStub = new ReservationRepositoryStub();
+        reservationRepositoryMock = mock(ReservationRepository.class);
 
-        ProductRepository productRepository = mock(ProductRepository.class);
+        // Reservation repository
+        reservation = mock(Reservation.class);
+        when(reservationRepositoryMock.load(any(Id.class))).thenReturn(reservation);
 
-        Product availableProduct = new Product(availableProductId, new Money(50), "Swordfish", ProductType.FOOD);
-        when(productRepository.load(availableProductId)).thenReturn(availableProduct);
-
-        Product notAvailableProduct = new Product(notAvailableProductId, new Money(70), "Trout", ProductType.FOOD);
-        notAvailableProduct.markAsRemoved();
-        when(productRepository.load(notAvailableProductId)).thenReturn(notAvailableProduct);
+        // Product repository
+        productRepository = mock(ProductRepository.class);
 
         // loadClient() fake
         SystemContext systemContext = mock(SystemContext.class);
@@ -54,11 +64,8 @@ public class AddProductCommandHandlerTest {
         when(clientRepository.load(any(Id.class))).thenReturn(new Client());
 
         // Suggested product
-        Product suggestedProduct = new Product(suggestedProductId, new Money(100), "Shark", ProductType.FOOD);
-        SuggestionService suggestionService = mock(SuggestionService.class);
-        when(suggestionService.suggestEquivalent(any(Product.class), any(Client.class))).thenReturn(suggestedProduct);
+        suggestionService = mock(SuggestionService.class);
 
-        addProductCommandHandler.setReservationRepository(reservationRepository);
         addProductCommandHandler.setProductRepository(productRepository);
         addProductCommandHandler.setClientRepository(clientRepository);
         addProductCommandHandler.setSuggestionService(suggestionService);
@@ -68,17 +75,17 @@ public class AddProductCommandHandlerTest {
 
     @Test
     public void handleMethodShouldSaveReservationToReservationRepository() {
-        reservationRepository.clear();
+        setForStateTest();
 
         AddProductCommand addProductCommand = new AddProductCommand(Id.generate(), availableProductId, 10);
         addProductCommandHandler.handle(addProductCommand);
 
-        assertThat(reservationRepository.size(), is(1));
+        assertThat(reservationRepositoryStub.size(), is(1));
     }
 
     @Test
     public void handleMethodShouldSaveReservationWithAvailableProduct() {
-        reservationRepository.clear();
+        setForStateTest();
 
         AddProductCommand addProductCommand = new AddProductCommand(Id.generate(), availableProductId, 10);
         addProductCommandHandler.handle(addProductCommand);
@@ -90,7 +97,7 @@ public class AddProductCommandHandlerTest {
 
     @Test
     public void handleMethodShouldSaveReservationWithSuggestedProduct() {
-        reservationRepository.clear();
+        setForStateTest();
 
         AddProductCommand addProductCommand = new AddProductCommand(Id.generate(), notAvailableProductId, 10);
         addProductCommandHandler.handle(addProductCommand);
@@ -102,7 +109,7 @@ public class AddProductCommandHandlerTest {
 
     @Test
     public void handleMethodShouldAppendProductToExistingReservation() {
-        reservationRepository.clear();
+        setForStateTest();
 
         Id orderId = Id.generate();
 
@@ -112,17 +119,19 @@ public class AddProductCommandHandlerTest {
         addProductCommandHandler.handle(addProductCommand);
 
         int reservedProductsAmount = -1;
-        if (reservationRepository.reservations.size() > 0) {
-            Reservation addedReservation = reservationRepository.reservations.get(0);
+        if (reservationRepositoryStub.reservations.size() > 0) {
+            Reservation addedReservation = reservationRepositoryStub.reservations.get(0);
             reservedProductsAmount = addedReservation.getReservedProducts().size();
         }
 
         assertThat(reservedProductsAmount, is(2));
     }
 
+
+
     private Id getProductIdFromReservationRepository(int resIndex, int prodIndex) {
-        if (reservationRepository.reservations.size() > resIndex) {
-            Reservation addedReservation = reservationRepository.reservations.get(resIndex);
+        if (reservationRepositoryStub.reservations.size() > resIndex) {
+            Reservation addedReservation = reservationRepositoryStub.reservations.get(resIndex);
 
             if (addedReservation.getReservedProducts().size() > prodIndex) {
                 return addedReservation.getReservedProducts().get(prodIndex).getProductId();
@@ -130,5 +139,36 @@ public class AddProductCommandHandlerTest {
         }
 
         return null;
+    }
+
+    private void setForStateTest() {
+        reservationRepositoryStub.clear();
+        addProductCommandHandler.setReservationRepository(reservationRepositoryStub);
+
+        availableProduct = new Product(availableProductId, new Money(50), "Swordfish", ProductType.FOOD);
+        when(productRepository.load(availableProductId)).thenReturn(availableProduct);
+
+        notAvailableProduct = new Product(notAvailableProductId, new Money(70), "Trout", ProductType.FOOD);
+        notAvailableProduct.markAsRemoved();
+        when(productRepository.load(notAvailableProductId)).thenReturn(notAvailableProduct);
+
+        suggestedProduct = new Product(suggestedProductId, new Money(100), "Shark", ProductType.FOOD);
+        when(suggestionService.suggestEquivalent(any(Product.class), any(Client.class))).thenReturn(suggestedProduct);
+    }
+
+    private void setForBehaviourTest() {
+        addProductCommandHandler.setReservationRepository(reservationRepositoryMock);
+
+        availableProduct = mock(Product.class);
+        when(availableProduct.isAvailable()).thenReturn(true);
+        when(productRepository.load(availableProductId)).thenReturn(availableProduct);
+
+        notAvailableProduct = mock(Product.class);
+        when(notAvailableProduct.isAvailable()).thenReturn(false);
+        when(productRepository.load(notAvailableProductId)).thenReturn(notAvailableProduct);
+
+        suggestedProduct = mock(Product.class);
+        when(suggestionService.suggestEquivalent(
+                any(Product.class), any(Client.class))).thenReturn(suggestedProduct);
     }
 }
