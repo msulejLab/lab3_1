@@ -127,6 +127,25 @@ public class AddProductCommandHandlerTest {
         assertThat(reservedProductsAmount, is(2));
     }
 
+    @Test
+    public void handleMethodBehaviourTestWithAvailableProduct() {
+        setForBehaviourTest();
+
+        Id orderId = Id.generate();
+
+        AddProductCommand addProductCommand = new AddProductCommand(orderId, availableProductId, 10);
+        addProductCommandHandler.handle(addProductCommand);
+
+        verify(reservationRepositoryMock).load(orderId);
+
+        verify(productRepository).load(availableProductId);
+
+        verify(availableProduct).isAvailable();
+
+        verify(reservation).add(availableProduct, 10);
+
+        verify(reservationRepositoryMock).save(reservation);
+    }
 
 
     private Id getProductIdFromReservationRepository(int resIndex, int prodIndex) {
