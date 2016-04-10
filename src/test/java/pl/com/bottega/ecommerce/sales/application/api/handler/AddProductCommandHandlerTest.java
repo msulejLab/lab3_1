@@ -147,6 +147,28 @@ public class AddProductCommandHandlerTest {
         verify(reservationRepositoryMock).save(reservation);
     }
 
+    @Test
+    public void handleMethodBehaviourTestWithNotAvailableProduct() {
+        setForBehaviourTest();
+
+        Id orderId = Id.generate();
+
+        AddProductCommand addProductCommand = new AddProductCommand(orderId, notAvailableProductId, 10);
+        addProductCommandHandler.handle(addProductCommand);
+
+        verify(reservationRepositoryMock).load(orderId);
+
+        verify(productRepository).load(notAvailableProductId);
+
+        verify(notAvailableProduct).isAvailable();
+
+        verify(suggestionService).suggestEquivalent(eq(notAvailableProduct), any(Client.class));
+
+        verify(reservation).add(suggestedProduct, 10);
+
+        verify(reservationRepositoryMock).save(reservation);
+    }
+
 
     private Id getProductIdFromReservationRepository(int resIndex, int prodIndex) {
         if (reservationRepositoryStub.reservations.size() > resIndex) {
