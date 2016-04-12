@@ -41,7 +41,6 @@ public class AddProductCommandHandlerTest {
     public Id notAvailableProductId = Id.generate();
     public Id suggestedProductId = Id.generate();
 
-
     @Before
     public void setUp() {
         addProductCommandHandler = new AddProductCommandHandler();
@@ -77,7 +76,12 @@ public class AddProductCommandHandlerTest {
     public void handleMethodShouldSaveReservationToReservationRepository() {
         setForStateTest();
 
-        AddProductCommand addProductCommand = new AddProductCommand(Id.generate(), availableProductId, 10);
+        AddProductCommand addProductCommand = new AddProductCommandBuilder()
+                .withRandomOrderId()
+                .withProductId(availableProductId)
+                .withDefaultQuantity()
+                .build();
+
         addProductCommandHandler.handle(addProductCommand);
 
         assertThat(reservationRepositoryStub.size(), is(1));
@@ -87,7 +91,12 @@ public class AddProductCommandHandlerTest {
     public void handleMethodShouldSaveReservationWithAvailableProduct() {
         setForStateTest();
 
-        AddProductCommand addProductCommand = new AddProductCommand(Id.generate(), availableProductId, 10);
+        AddProductCommand addProductCommand = new AddProductCommandBuilder()
+                .withRandomOrderId()
+                .withProductId(availableProductId)
+                .withDefaultQuantity()
+                .build();
+
         addProductCommandHandler.handle(addProductCommand);
 
         Id addedProductId = getProductIdFromReservationRepository(0, 0);;
@@ -99,7 +108,12 @@ public class AddProductCommandHandlerTest {
     public void handleMethodShouldSaveReservationWithSuggestedProduct() {
         setForStateTest();
 
-        AddProductCommand addProductCommand = new AddProductCommand(Id.generate(), notAvailableProductId, 10);
+        AddProductCommand addProductCommand = new AddProductCommandBuilder()
+                .withRandomOrderId()
+                .withProductId(notAvailableProductId)
+                .withDefaultQuantity()
+                .build();
+
         addProductCommandHandler.handle(addProductCommand);
 
         Id addedProductId = getProductIdFromReservationRepository(0, 0);
@@ -113,9 +127,20 @@ public class AddProductCommandHandlerTest {
 
         Id orderId = Id.generate();
 
-        AddProductCommand addProductCommand = new AddProductCommand(orderId, availableProductId, 10);
+        AddProductCommand addProductCommand = new AddProductCommandBuilder()
+                .withOrderId(orderId)
+                .withProductId(availableProductId)
+                .withDefaultQuantity()
+                .build();
+
         addProductCommandHandler.handle(addProductCommand);
-        addProductCommand = new AddProductCommand(orderId, notAvailableProductId, 20);
+
+        addProductCommand = new AddProductCommandBuilder()
+                .withOrderId(orderId)
+                .withProductId(notAvailableProductId)
+                .withDefaultQuantity()
+                .build();
+
         addProductCommandHandler.handle(addProductCommand);
 
         int reservedProductsAmount = -1;
@@ -133,7 +158,12 @@ public class AddProductCommandHandlerTest {
 
         Id orderId = Id.generate();
 
-        AddProductCommand addProductCommand = new AddProductCommand(orderId, availableProductId, 10);
+        AddProductCommand addProductCommand = new AddProductCommandBuilder()
+                .withOrderId(orderId)
+                .withProductId(availableProductId)
+                .withDefaultQuantity()
+                .build();
+
         addProductCommandHandler.handle(addProductCommand);
 
         verify(reservationRepositoryMock).load(orderId);
@@ -153,7 +183,12 @@ public class AddProductCommandHandlerTest {
 
         Id orderId = Id.generate();
 
-        AddProductCommand addProductCommand = new AddProductCommand(orderId, notAvailableProductId, 10);
+        AddProductCommand addProductCommand = new AddProductCommandBuilder()
+                .withOrderId(orderId)
+                .withProductId(notAvailableProductId)
+                .withDefaultQuantity()
+                .build();
+
         addProductCommandHandler.handle(addProductCommand);
 
         verify(reservationRepositoryMock).load(orderId);
